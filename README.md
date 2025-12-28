@@ -19,7 +19,7 @@ npm install
 ## Build (offline-ready)
 `npm run build`
 
-After building, you can copy the whole folder to an offline machine and open index.html (or serve it locally).
+After building, you can copy the whole folder to an offline machine and open `index.html` (or serve it locally).
 
 ## Serve locally (optional)
 `python3 -m http.server 8080`
