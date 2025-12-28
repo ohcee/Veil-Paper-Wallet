@@ -1,75 +1,96 @@
-# Veil Paper Wallet (Basecoin Bech32) — Offline Generator
+# Veil Paper Wallet (Basecoin Bech32)
 
-A **static, offline-capable** Veil paper wallet generator for **Basecoin bech32** addresses:
+A minimal, offline-capable **Veil basecoin** paper wallet generator.
 
-- **Mainnet:** `bv1...`
-- **Testnet:** `tv1...`
+- **Mainnet** addresses: `bv1...`
+- **Testnet** addresses: `tv1...`
+- Generates a **compressed WIF** private key + matching **bech32 (witness v0 / P2WPKH)** address.
+- Designed so users can **download the repo and run it fully offline** after building.
 
-This tool generates:
-- **Compressed WIF private key** (Veil prefixes: `0x80` mainnet / `0xEF` testnet)
-- **Bech32 P2WPKH (witness v0) address** (`bv1...` / `tv1...`)
-- Optional **“Verify WIF”** feature to re-derive the address locally from the WIF
-
-Repository:
-- https://github.com/ohcee/Veil-Paper-Wallet
+> ⚠️ Best practice: generate wallets on an offline computer you control, ideally from a clean OS, and verify the WIF → address derivation locally.
 
 ---
 
-## Security notes (read this first)
+## Why this exists
 
-This generator is safe **only when used offline**.
+GitHub Pages is convenient for demos, but real paper wallet generation should be done **offline**. This repo supports:
 
-Recommended safe workflow:
-1. Download this repository (or a Release zip) while online.
-2. Verify you are using the correct repo and files.
-3. Disconnect from the internet (**airplane mode / unplug ethernet / disable Wi-Fi**).
-4. Open `index.html` locally in your browser.
-5. Generate your wallet offline.
-6. Store the private key safely (write it down, print it, or store encrypted).
-
-Do **not**:
-- paste your private key / WIF into unknown websites
-- generate keys on a compromised machine
-- screenshot or upload private keys anywhere
+- **Online demo** (GitHub Pages) for convenience
+- **Offline build + run** for real usage
 
 ---
 
-## What this wallet generates (technical)
+## Requirements
 
-- Address type: **Bech32 SegWit v0 (P2WPKH)**  
-- Witness program: **20-byte HASH160(pubkey)**  
-- Bech32 HRP:
-  - Mainnet: `bv`
-  - Testnet: `tv`
-- WIF encoding:
-  - Prefix: `0x80` (mainnet) or `0xEF` (testnet)
-  - Compressed key marker: `0x01`
-  - Checksum: first 4 bytes of `SHA256(SHA256(payload))`
+- Node.js (LTS recommended)
+- npm
 
----
+git clone https://github.com/ohcee/Veil-Paper-Wallet.git
+cd Veil-Paper-Wallet
+npm install
 
-## Quick start (offline use)
-
-### Option A (recommended): use the included offline bundle
-If this repo contains a prebuilt `bundle.js`, you can use it without building anything.
-
-Steps:
-1. Download the repo as a ZIP (GitHub → **Code** → **Download ZIP**) or grab a Release zip.
-2. Extract it.
-3. Disconnect from the internet.
-4. Open `index.html` directly in a browser.
-
-That’s it. No network requests are required to generate keys.
-
----
-
-## Build it yourself (recommended for power users)
-
-Building locally lets you verify that `bundle.js` is produced from `app.js` and the pinned dependencies.
-
-### Requirements
-- Node.js + npm
-
-### Install dependencies
-```bash
-npm ci
+### Build
+- npm run build
+This produces bundle.js, which index.html loads.
+After building, you can copy the entire folder to an offline machine and open index.html there (or run a tiny local server).
+Run locally (optional)
+You can open index.html directly, but a tiny local server can avoid browser module/file restrictions.
+### Python
+python3 -m http.server 8080
+Then open:
+http://localhost:8080
+If port 8080 is taken, change it:
+python3 -m http.server 9090
+### Testnet mode
+To generate testnet addresses (tv1...), open the page with:
+?testnet=true
+### Examples:
+index.html?testnet=true
+http://localhost:8080/?testnet=true
+## To return to mainnet:
+remove the query string (no testnet=true)
+### How to verify the wallet you generated
+1) Verify inside this tool (best, offline)
+Use the Verify WIF box:
+Paste the WIF
+Click Verify
+The tool derives the bech32 address from that WIF locally
+If the derived address matches the displayed address, your key/address pairing is correct.
+2) Verify via Veil Explorer API (format + chain info)
+This is an online check (useful after the fact). It verifies the address is recognized and shows script details.
+### Example:
+curl -s -X POST 'https://explorer-api.veil-project.com/api/Address' \
+  -H 'Content-Type: application/json' \
+  -d '{"address":"bv1YOURADDRESSHERE","forceScanAmount":true}'
+### Typical response fields include:
+isValid
+scriptPubKey
+iswitness
+witness_version
+witness_program
+### Notes:
+The explorer may not show an address if it has never appeared on-chain.
+The strongest verification is still: derive the address from the WIF locally.
+### Project layout
+index.html — UI (open this)
+app.js — source code (build input)
+bundle.js — bundled build output (offline ready)
+package.json / package-lock.json — dependencies + scripts
+README.md — documentation
+### Development notes
+Uses @noble/secp256k1 for public key derivation
+Uses @noble/hashes for SHA256 and RIPEMD160
+Implements Bech32 encode and Base58Check (WIF) internally
+Uses browser crypto.getRandomValues() plus mouse movement mixing for entropy
+### Security notes (read this)
+Paper wallets are easy to mess up operationally. A few practical rules:
+Generate keys on a machine you trust, ideally offline.
+Don’t reuse paper wallet keys across multiple contexts.
+Printing can leak (printers can store jobs). Writing down by hand is safer than printing.
+Verify the WIF → address derivation before funding.
+Always test with a small amount first before trusting large balances.
+### Disclaimer
+This software is provided as-is, without warranty of any kind.
+You are responsible for verifying your environment and operational security.
+Always test with small amounts first before trusting large balances.
+::contentReference[oaicite:0]{index=0}
