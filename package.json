@@ -7,7 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "esbuild app.js --bundle --format=iife --minify --outfile=bundle.js",
     "serve": "python3 -m http.server 8080",
-    "start": "npm run build && npm run serve"
+    "start": "npm run build && npm run serve",
+    "build-stealth": "esbuild stealth-app.js --bundle --format=iife --minify --outfile=stealth-bundle.js",
+    "build-all": "npm run build && npm run build-stealth"
   },
   "keywords": [],
   "author": "",

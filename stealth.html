@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Veil Stealth Paper Wallet (sv1/tps1)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; background: black; }
+    .wrap { max-width: 980px; margin: 0 auto; }
+    h1 { margin: 0 0 8px; color: #eee; }
+    .badge { display:inline-block; padding: 4px 10px; border-radius: 999px; background: #eee; font-size: 13px; }
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .card { border:1px solid #ddd; border-radius: 12px; padding: 14px; background:#fff; flex:1; min-width: 280px; }
+    .muted { color:#555; font-size: 14px; line-height: 1.35; }
+    button { padding: 10px 14px; border:0; border-radius: 10px; cursor:pointer; font-weight: 600; }
+    button.primary { background:#1769ff; color:#fff; }
+    button.ghost { background:#f3f3f3; }
+    .entropyBox { border:2px dashed #bbb; border-radius: 14px; padding: 12px; margin-top: 10px; }
+    .bar { height: 12px; background:#eee; border-radius: 999px; overflow:hidden; }
+    .bar > div { height:100%; width:0%; background:#33518a; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; word-break: break-all; }
+    .big { font-size: 16px; }
+    .small-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; word-break: break-all; font-size: 12px; color: #888; margin-top: 4px; }
+    .label { font-weight: 700; margin-bottom: 6px; }
+    .warn { background: lightgoldenrodyellow; border: 1px solid orange; }
+    .ok { background: lightgreen; border: 1px solid green; }
+    .danger { background: lightpink; border: 1px solid red; }
+    .info { background: #e8f0fe; border: 1px solid #4285f4; }
+    .small { font-size: 12px; color:#666; }
+    p { color: #eee; }
+    input { padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-family: ui-monospace, monospace; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Veil Stealth Paper Wallet</h1>
+    <div class="muted">
+      <p>Generates a <b>Stealth / RingCT</b> address with scan and spend keypairs. Address is <b>sv1</b> (mainnet) or <b>tps1</b> (testnet).</p>
+      <p>This is the address type used for private transactions in Veil. Two private keys are generated: a <b>scan key</b> and a <b>spend key</b>. Both are required to access funds.</p>
+    </div>
+    <div style="margin-top:10px;">
+      <span class="badge" id="netBadge">Network: …</span>
+      <a href="index.html" style="margin-left:12px; color:#4dabf7; font-size:14px;">← Basecoin wallet</a>
+    </div>
+
+    <div class="row" style="margin-top:16px;">
+      <div class="card warn">
+        <div class="label">⚠️ Safety</div>
+        <div class="muted">
+          Use this offline on a clean machine. Don't paste keys into random sites. Print or write down carefully.
+          <b>Both private keys (scan + spend) are needed to access your funds.</b> Losing either one means permanent loss.
+          This tool does not contact any API.
+        </div>
+      </div>
+      <div class="card">
+        <div class="label">Controls</div>
+        <button class="primary" id="btnStart">Start entropy collection</button>
+        <button class="ghost" id="btnReset" style="margin-left:10px;">Reset</button>
+        <div class="small" style="margin-top:10px;">
+          Tip: add <span class="mono">?testnet=true</span> to the URL for tps1.
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="entropyCard" style="margin-top:16px; display:none;">
+      <div class="label">Move mouse / touchpad inside this box</div>
+      <div class="muted">We mix your movements with secure browser randomness. Fill the bar to generate.</div>
+      <div class="entropyBox" id="entropyBox" style="height:170px;">
+        <div class="muted">Keep moving…</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px; margin-top:10px;">
+        <div class="bar" style="flex:1;"><div id="barFill"></div></div>
+        <div class="mono" id="barText">0%</div>
+      </div>
+    </div>
+
+    <!-- Generated address -->
+    <div class="card ok" style="margin-top:16px;">
+      <div class="label">✅ OK TO SHARE — Stealth Address</div>
+      <div class="muted">Give this address to receive VEIL privately.</div>
+      <div class="mono big" id="outAddr" style="margin-top:10px;">—</div>
+      <div class="small-mono" id="outScanPub"></div>
+      <div class="small-mono" id="outSpendPub"></div>
+    </div>
+
+    <!-- Private keys -->
+    <div class="row" style="margin-top:16px;">
+      <div class="card danger">
+        <div class="label">🔒 KEEP PRIVATE — Scan Key</div>
+        <div class="muted">Required to detect incoming transactions.</div>
+        <div class="mono big" id="outScanWif" style="margin-top:10px;">—</div>
+      </div>
+
+      <div class="card danger">
+        <div class="label">🔒 KEEP PRIVATE — Spend Key</div>
+        <div class="muted">Required to spend received funds.</div>
+        <div class="mono big" id="outSpendWif" style="margin-top:10px;">—</div>
+      </div>
+    </div>
+
+    <!-- Verify from WIF keys -->
+    <div class="card" style="margin-top:16px;">
+      <div class="label">Verify — Derive address from keys</div>
+      <div class="muted">Paste both WIF private keys to verify they produce the correct stealth address:</div>
+      <div style="display:flex; flex-direction:column; gap:10px; margin-top:10px;">
+        <input id="verifyScanWif" style="width:100%; box-sizing:border-box;" placeholder="Scan WIF (starts with 5/K/L on mainnet)" />
+        <input id="verifySpendWif" style="width:100%; box-sizing:border-box;" placeholder="Spend WIF (starts with 5/K/L on mainnet)" />
+        <button class="primary" id="btnVerify">Verify</button>
+      </div>
+      <div class="mono" id="verifyOut" style="margin-top:10px; color:#111;"></div>
+    </div>
+
+    <!-- Decode an existing address -->
+    <div class="card info" style="margin-top:16px;">
+      <div class="label">Decode — Inspect a stealth address</div>
+      <div class="muted">Paste any sv1/tps1 stealth address to see its scan and spend public keys:</div>
+      <div style="display:flex; gap:10px; margin-top:10px; flex-wrap:wrap;">
+        <input id="decodeInput" style="flex:1; min-width:260px;" placeholder="sv1qq… or tps1qq…" />
+        <button class="primary" id="btnDecode">Decode</button>
+      </div>
+      <div class="mono" id="decodeOut" style="margin-top:10px; color:#111;"></div>
+    </div>
+
+    <!-- How to use -->
+    <div class="card" style="margin-top:16px;">
+      <div class="label">How to use this paper wallet</div>
+      <div class="muted">
+        <p style="color:#555;"><b>Receiving:</b> Share the <b>sv1…</b> address with anyone who wants to send you VEIL privately.</p>
+        <p style="color:#555;"><b>Checking balance:</b> You cannot check balance without importing the scan key into a Veil wallet.</p>
+        <p style="color:#555;"><b>Spending:</b> Import both the scan and spend WIF keys into a Veil Core wallet using the debug console. Contact the Veil community for current import instructions.</p>
+        <p style="color:#555;"><b>Backup:</b> Print this page or write down ALL THREE items: the address, scan WIF, and spend WIF. Store them securely and separately if possible.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:16px; color: #f3f3f3;">
+      Note: Veil stealth addresses are <b>sv</b> (main) / <b>tps</b> (test). This tool generates dual-key stealth addresses compatible with Veil's RingCT system.
+    </div>
+  </div>
+
+  <script src="./stealth-bundle.js"></script>
+</body>
+</html>
