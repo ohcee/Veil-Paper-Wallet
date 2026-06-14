@@ -29,6 +29,15 @@
     .small { font-size: 12px; color:#666; }
     p { color: #eee; }
     input { padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-family: ui-monospace, monospace; }
+    @media print {
+      button, .entropyBox, .badge, .info, input { display: none !important; }
+      body { background: white; margin: 12px; }
+      .card { border: 1px solid #999; break-inside: avoid; }
+      .ok { background: #e8ffe8; }
+      .danger { background: #ffe8e8; }
+      p, .muted { color: #333; }
+      h1 { color: #111; }
+    }
   </style>
 </head>
 <body>
@@ -56,6 +65,7 @@
         <div class="label">Controls</div>
         <button class="primary" id="btnStart">Start entropy collection</button>
         <button class="ghost" id="btnReset" style="margin-left:10px;">Reset</button>
+        <button class="ghost" id="btnPrint" style="margin-left:10px;" onclick="window.print()">🖨️ Print</button>
         <div class="small" style="margin-top:10px;">
           Tip: add <span class="mono">?testnet=true</span> to the URL for tps1.
         </div>

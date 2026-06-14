@@ -144,18 +144,16 @@ function convertBits(data, from, to, pad) {
 
 // -------------------------
 // Stealth address encoding
-// Raw format: [options:1][scan_pub:33][N:1][spend_pub:33][nsigs:1][prefix_bits:1] = 70 bytes
-// Bech32 with HRP "sv" (mainnet) or "tps" (testnet), NO witness version
 // -------------------------
 function buildStealthRaw(scanPub, spendPub) {
   const raw = new Uint8Array(70);
   let o = 0;
-  raw[o] = 0x00; o++;                          // options
-  raw.set(scanPub, o); o += 33;                // scan pubkey (33 bytes compressed)
-  raw[o] = 0x01; o++;                          // N = 1 spend key
-  raw.set(spendPub, o); o += 33;               // spend pubkey (33 bytes compressed)
-  raw[o] = 0x00; o++;                          // number_signatures = 0 (matches wallet default)
-  raw[o] = 0x00;                               // prefix_bits = 0
+  raw[o] = 0x00; o++;
+  raw.set(scanPub, o); o += 33;
+  raw[o] = 0x01; o++;
+  raw.set(spendPub, o); o += 33;
+  raw[o] = 0x00; o++;
+  raw[o] = 0x00;
   return raw;
 }
 
@@ -165,13 +163,11 @@ function encodeStealthAddress(hrp, rawBytes) {
 }
 
 function decodeStealthAddress(addr) {
-  // Find HRP by looking for the last "1"
   const sepIdx = addr.lastIndexOf("1");
   if (sepIdx < 1) throw new Error("Invalid bech32: no separator");
   const hrp = addr.slice(0, sepIdx);
   const dataChars = addr.slice(sepIdx + 1);
 
-  // Decode 5-bit values
   const data5 = [];
   for (const ch of dataChars) {
     const v = BECH32_ALPH.indexOf(ch);
@@ -179,14 +175,10 @@ function decodeStealthAddress(addr) {
     data5.push(v);
   }
 
-  // Verify checksum
   const values = bech32HrpExpand(hrp).concat(data5);
   if (bech32Polymod(values) !== 1) throw new Error("Invalid bech32 checksum");
 
-  // Strip checksum (last 6)
   const payload5 = data5.slice(0, -6);
-
-  // Convert back to 8-bit
   const raw = convertBits(payload5, 5, 8, false);
 
   if (raw.length < 70) throw new Error("Stealth address too short: " + raw.length + " bytes");
@@ -212,7 +204,6 @@ function setNetBadge() {
 }
 setNetBadge();
 
-// Entropy
 let seed = null;
 let progress = 0;
 let done = false;
@@ -295,35 +286,34 @@ function startEntropy() {
   };
 
   box.addEventListener("mousemove", onMove, { passive: true });
+  box.addEventListener("touchmove", (evt) => {
+    evt.preventDefault();
+    const touch = evt.touches[0];
+    onMove({ clientX: touch.clientX, clientY: touch.clientY });
+  }, { passive: false });
 }
 
 function finishGenerate() {
-  // Derive two independent keys from the seed
   const scanPriv = deriveValidKey(seed, "veil-stealth-scan-v1");
   const spendPriv = deriveValidKey(sha256(concatBytes(seed, utf8Bytes("split"))), "veil-stealth-spend-v1");
 
-  const scanPub = getPublicKey(scanPriv, true);   // 33 bytes compressed
-  const spendPub = getPublicKey(spendPriv, true); // 33 bytes compressed
+  const scanPub = getPublicKey(scanPriv, true);
+  const spendPub = getPublicKey(spendPriv, true);
 
-  // Build stealth address
   const raw = buildStealthRaw(scanPub, spendPub);
   const addr = encodeStealthAddress(NET.stealthHrp, raw);
 
-  // WIF encode both private keys
   const scanWif = wifFromPrivkey(scanPriv, NET.wif);
   const spendWif = wifFromPrivkey(spendPriv, NET.wif);
 
-  // Display
   $("outAddr").textContent = addr;
   $("outScanWif").textContent = scanWif;
   $("outSpendWif").textContent = spendWif;
   $("outScanPub").textContent = bytesToHex(scanPub);
   $("outSpendPub").textContent = bytesToHex(spendPub);
 
-  // Hide entropy card
   $("entropyCard").style.display = "none";
 
-  // Wipe seed
   seed = null;
   progress = 0;
 }
@@ -375,7 +365,6 @@ function decodeAddr() {
   }
 }
 
-// Wire buttons
 $("btnStart").addEventListener("click", startEntropy);
 $("btnReset").addEventListener("click", resetAll);
 $("btnVerify").addEventListener("click", verifyKeys);
